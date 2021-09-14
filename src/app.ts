@@ -1,20 +1,13 @@
 import express from 'express';
-import config from 'config';
-import logger from './utils/logger';
-import connectDb from './database/connectDb';
-import routes from './modules/routes';
-
-const port = config.get('port') as number;
-const host = config.get('host') as string;
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
+app.use(express.static(`${__dirname}/../public`));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors({ origin: '*' }));
 
-app.listen(port, host, () => {
-  logger.info(`🔥 :> ${host}:${port}`);
-
-  connectDb();
-  routes(app);
-});
+export default app;

@@ -18,15 +18,7 @@
     "noEmit": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "importHelpers": true,
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["*"],
-      "@utils/*": ["utils/*"],
-      "@modules/*": ["modules/*"],
-      "@database": ["database"]
-    }
+    "importHelpers": false
   },
-  "include": ["src/**/*.ts", "src/**/*.json", ".env"],
   "exclude": ["node_modules"]
 }
