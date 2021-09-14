@@ -1,0 +1,13 @@
+{
+  "restartable": "rs",
+  "ignore": [".git", "node_modules/", "dist/", "coverage/"],
+  "watch": ["src/", "tsconfig.json"],
+  "exec": "ts-node -r tsconfig-paths/register --transpile-only src/app.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js,json,ts",
+  "events": {
+    "start": "node -e 'console.clear()'"
+  }
+}
