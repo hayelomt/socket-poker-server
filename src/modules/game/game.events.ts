@@ -2,11 +2,12 @@ import * as gameService from './game.service';
 import { IOEvents } from '../socket/socket.events';
 import { Server, Socket } from 'socket.io';
 import Game from './game.model';
-import { GameStatus } from './game.interfaces';
+import { GameStatus, IGame } from './game.interfaces';
+import { cardEvents } from '../card/card.events';
 
 type SocketArg = {
-  socket?: Socket;
-  io?: Server;
+  socket: Socket;
+  io: Server;
 };
 
 export const gameEvents = {
@@ -20,9 +21,71 @@ export const gameEvents = {
   startedGame: 'game:started',
   startGame: 'game:start',
   finishedGame: 'game:finished',
+
   infoGame: 'game:info',
   moveGame: 'game:move',
   cardDrawGame: 'game:cardDraw',
+
+  playerCards: 'player:cards',
+  playerCurrent: 'player:current',
+  playerCount: 'player:count',
+};
+
+export const startGameRoom = async (
+  { io, socket }: SocketArg,
+  _socketId: string,
+  gameId: string,
+) => {
+  const curGame = await gameService.findGame(gameId);
+
+  if (curGame) {
+    if (curGame.gameStatus !== 'PENDING') {
+      socket.emit(IOEvents.error, { message: 'Game already started' });
+    } else if (curGame.currentPlayerSocketId !== _socketId) {
+      socket.emit(IOEvents.error, {
+        message: 'Unauthorized to start game',
+      });
+    } else if (curGame.players.length < 2) {
+      socket.emit(IOEvents.error, {
+        message: 'Must have more than 1 player to start game',
+      });
+    } else {
+      const gameStart: IGame = (
+        await gameService.startGame(curGame.id)
+      ).toJSON();
+      io.in(curGame.id).emit(gameEvents.startedGame, {
+        currentPlayerSocketId: gameStart.currentPlayerSocketId,
+        players: gameStart.players,
+        topCard: gameStart.topCard,
+        direction: gameStart.direction,
+      });
+      gameStart.players.forEach(player => {
+        io.to(player.socketId).emit(gameEvents.playerCards, player.cards);
+      });
+      io.in(curGame.id).emit(cardEvents.cardTop, gameStart.topCard);
+      io.in(curGame.id).emit(
+        cardEvents.cardCurrentSuite,
+        gameStart.currentSuite,
+      );
+      io.in(curGame.id).emit(cardEvents.cardDirection, gameStart.direction);
+      io.in(curGame.id).emit(gameEvents.playerCount, gameStart.players.length);
+      io.in(curGame.id).emit(
+        gameEvents.playerCurrent,
+        gameService.getPlayer(
+          gameStart.players,
+          gameStart.currentPlayerSocketId!,
+        ),
+      );
+
+      // TODO: Remove
+      // setTimeout(() => {
+      //   // io.in(curGame.id).emit(gameEvents.finishedGame, 'mal');
+      //   io.in(curGame.id).emit(cardEvents.cardLeft, 'titan');
+      // }, 2000);
+    }
+  } else {
+    socket.emit(IOEvents.error, { message: 'Game not found' });
+  }
 };
 
 export const gameInfo = async ({ socket }: SocketArg, gameId) => {
@@ -33,6 +96,7 @@ export const gameInfo = async ({ socket }: SocketArg, gameId) => {
       joinTag: game.joinTag,
       isCreator: game.currentPlayerSocketId === socket.id,
       gameStatus: game.gameStatus,
+      playersCount: game.players.length,
     });
   } else {
     socket.emit(IOEvents.error, { message: 'Game Not Found' });
@@ -162,45 +226,5 @@ export const createGameRoom = async (
 //   const curGame = await gameService.findGame(gameId);
 //   if (curGame) {
 //     await playerMoveHandlers.onDraw({ socket }, curGame);
-//   }
-// };
-
-// export const startGameRoom = async ({ io, socket }, { socketId, gameId }) => {
-//   const curGame = await gameService.findGame(gameId);
-
-//   if (curGame) {
-//     // if (curGame.gameStatus !== 'PENDING') {
-//     //   socket.emit(IOEvents.error, { message: 'Game already started' });
-//     // } else if (curGame.currentPlayerSocketId !== socketId) {
-//     //   socket.emit(IOEvents.error, {
-//     //     message: 'Unauthorized to start game',
-//     //   });
-//     // } else if (curGame.players.length < 2) {
-//     //   socket.emit(IOEvents.error, {
-//     //     message: 'Must have more than 1 player to start game',
-//     //   });
-//     // } else {
-//     const gameStart = (await gameService.startGame(curGame.id)).toJSON();
-//     io.in(curGame.id).emit(gameEvents.startedGame, {
-//       currentPlayerSocketId: gameStart.currentPlayerSocketId,
-//       players: gameStart.players,
-//       topCard: gameStart.topCard,
-//       direction: gameStart.direction,
-//     });
-//     gameStart.players.forEach((player) => {
-//       io.to(player.socketId).emit(playerEvents.playerCards, player.cards);
-//     });
-
-//     io.in(curGame.id).emit(
-//       playerEvents.playerCurrent,
-//       gameService.getPlayer(gameStart.players, gameStart.currentPlayerSocketId)
-//     );
-
-//     // TODO: Remove
-//     // io.in(curGame.id).emit(gameEvents.finishedGame, 'mal');
-//     // io.in(curGame.id).emit(cardEvents.cardLeft, 'titan');
-//     // }
-//   } else {
-//     socket.emit(IOEvents.error, { message: 'Game not found' });
 //   }
 // };

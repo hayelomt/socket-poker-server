@@ -74,14 +74,19 @@ export const dealPlayer = async (
 };
 
 export const startGame = async (gameId: string) => {
-  const game = await Game.findById(gameId);
+  let game: IGame = await Game.findById(gameId);
   if (game) {
     for (let i = 0; i < game.players.length; i++) {
-      const handSize = i === 0 ? game.handSize + 1 : game.handSize;
-      await dealPlayer(gameId, game.players[i].socketId, handSize);
+      await dealPlayer(gameId, game.players[i].socketId, game.handSize);
     }
+    game = await Game.findById(gameId);
+    const topCard = game.deck.slice(0, 1)[0];
     await Game.findByIdAndUpdate(gameId, {
       $set: {
+        topCard,
+        currentSuite: topCard.suite,
+        currentValue: topCard.value,
+        deck: game.deck.slice(1),
         gameStatus: GameStatus.Started,
       },
     });
@@ -174,7 +179,7 @@ export const getPlayer = (
   const player = players.find(item => item.socketId === playerSocketId);
 
   return {
-    username: player.username,
+    username: player!.username,
     socketId: playerSocketId,
   };
 };

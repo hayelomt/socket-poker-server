@@ -71,6 +71,7 @@ import {
 
 //     return [false, null];
 //   },
+// TODO: Remove
 //   validateMultiFirstMovePlayed(currentSuite, _currentValue, drawnCards) {
 //     if (!currentSuite) {
 //       return [false, cardUtils.cardValMessages.multiGameNotStarted()];

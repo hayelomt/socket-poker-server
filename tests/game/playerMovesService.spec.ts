@@ -80,19 +80,6 @@ describe('GameService', () => {
     });
   });
 
-  describe('setInitialPlay', () => {
-    it('sets played first to true', async () => {
-      let curGame = await createGame(socketId, username);
-      await Game.findByIdAndUpdate(curGame.id, {
-        $set: { firstMovePlayed: false },
-      });
-
-      await playerMoves.setFirstMovePlayed(curGame);
-      curGame = await Game.findById(curGame.id);
-      expect(curGame.firstMovePlayed).to.be.true;
-    });
-  });
-
   describe('setTopCard', () => {
     it('sets top card', async () => {
       curGame = await createGame(socketId, username);

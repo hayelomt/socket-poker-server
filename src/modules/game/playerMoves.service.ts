@@ -44,15 +44,6 @@ const playerMoves = {
       { new: true },
     );
   },
-  async setFirstMovePlayed(game: IGame) {
-    return Game.findByIdAndUpdate(
-      game.id,
-      { $set: { firstMovePlayed: true } },
-      {
-        new: true,
-      },
-    );
-  },
   async setTopCard(game: IGame, card: ICard) {
     return Game.findByIdAndUpdate(
       game.id,

@@ -21,7 +21,6 @@ const schema = new Schema<IGame>(
     currentSuite: String,
     currentValue: String,
     currentPlayerHasDrawnCard: { type: Boolean, default: false },
-    firstMovePlayed: { type: Boolean, default: false },
     gameStatus: {
       type: String,
       enum: Object.values(GameStatus),

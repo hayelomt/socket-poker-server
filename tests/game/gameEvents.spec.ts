@@ -6,6 +6,7 @@ import * as gameService from '../../src/modules/game/game.service';
 import Game from '../../src/modules/game/game.model';
 import { IOEvents } from '../../src/modules/socket/socket.events';
 import { GameStatus } from '../../src/modules/game/game.interfaces';
+import { cardEvents } from '../../src/modules/card/card.events';
 // const finalizeEvent = require('../../../src/modules/game/finalizeEvent');
 
 const sandbox = sinon.createSandbox();
@@ -29,12 +30,132 @@ describe('gameIOEvents', () => {
     sandbox.restore();
   });
 
+  // describe('startGame', () => {
+  //   it("doesn't start game if only 1 player", async () => {
+  //     const socketId = 'sock-id';
+  //     const username = 'titan';
+  //     const newGame = await gameService.createGame(socketId, username);
+  //     await Game.findByIdAndUpdate(newGame.id, {
+  //       $set: { gameStatus: 'PENDING' },
+  //     });
+
+  //     expect(socket.emit.called).to.be.false;
+
+  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+
+  //     expect(socket.emit.called).to.be.true;
+  //     expect(
+  //       socket.emit.calledWith(IOEvents.error, {
+  //         message: 'Must have more than 1 player to start game',
+  //       }),
+  //     ).to.be.true;
+  //   });
+
+  //   it('emits error if already started', async () => {
+  //     const socketId = 'sock-id';
+  //     const username = 'titan';
+  //     const newGame = await gameService.createGame(socketId, username);
+  //     await Game.findByIdAndUpdate(newGame.id, {
+  //       $set: { gameStatus: 'STARTED' },
+  //     });
+
+  //     expect(socket.emit.called).to.be.false;
+
+  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+
+  //     expect(socket.emit.called).to.be.true;
+  //     expect(
+  //       socket.emit.calledWith(IOEvents.error, {
+  //         message: 'Game already started',
+  //       }),
+  //     ).to.be.true;
+  //   });
+
+  //   it("emits error if user didn't start game", async () => {
+  //     const socketId = 'sock-id';
+  //     const username = 'titan';
+  //     const newGame = await gameService.createGame(socketId, username);
+
+  //     expect(socket.emit.called).to.be.false;
+
+  //     await gameIOEvents.startGameRoom({ io, socket }, 's', newGame.id);
+
+  //     expect(socket.emit.called).to.be.true;
+  //     expect(
+  //       socket.emit.calledWith(IOEvents.error, {
+  //         message: 'Unauthorized to start game',
+  //       }),
+  //     ).to.be.true;
+  //   });
+
+  //   it('starts game', async () => {
+  //     const socketId = 'sock-id';
+  //     const username = 'titan';
+  //     const newGame = await gameService.createGame(socketId, username);
+  //     await gameService.joinGame(newGame.id, {
+  //       socketId: 'sock-id-2',
+  //       username: 'eren',
+  //     });
+
+  //     expect(socket.emit.called).to.be.false;
+  //     expect(io.in.called).to.be.false;
+
+  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+
+  //     const gameDb = (await Game.findById(newGame.id)).toJSON();
+  //     expect(io.to.calledTwice).to.be.true;
+  //     expect(io.in.callCount).to.equal(6);
+  //     // io.in Calls
+  //     expect(
+  //       io
+  //         .in()
+  //         .emit.getCall(0)
+  //         .calledWith(gameIOEvents.gameEvents.startedGame, {
+  //           currentPlayerSocketId: gameDb.currentPlayerSocketId,
+  //           players: gameDb.players,
+  //           topCard: gameDb.topCard,
+  //           direction: gameDb.direction,
+  //         }),
+  //     ).to.be.true;
+  //     expect(
+  //       io.in().emit.getCall(1).calledWith(cardEvents.cardTop, gameDb.topCard),
+  //     ).to.be.true;
+  //     expect(
+  //       io
+  //         .in()
+  //         .emit.getCall(2)
+  //         .calledWith(cardEvents.cardCurrentSuite, gameDb.currentSuite),
+  //     ).to.be.true;
+  //     expect(
+  //       io
+  //         .in()
+  //         .emit.getCall(3)
+  //         .calledWith(cardEvents.cardDirection, gameDb.direction),
+  //     ).to.be.true;
+  //     expect(
+  //       io
+  //         .in()
+  //         .emit.getCall(4)
+  //         .calledWith(gameIOEvents.gameEvents.playerCount, 2),
+  //     ).to.be.true;
+  //     expect(
+  //       io
+  //         .in()
+  //         .emit.getCall(5)
+  //         .calledWith(gameIOEvents.gameEvents.playerCurrent, {
+  //           username,
+  //           socketId,
+  //         }),
+  //     ).to.be.true;
+  //   });
+  // });
+
   describe('gameInfo', () => {
     it('returns info', async () => {
       expect(socket.emit.called).to.be.false;
       const newGame = await gameService.createGame(socketId, username);
 
-      await gameIOEvents.gameInfo({ socket }, newGame.id);
+      await gameIOEvents.gameInfo({ socket, io }, newGame.id);
 
       expect(socket.emit.called).to.be.true;
       expect(
@@ -42,6 +163,7 @@ describe('gameIOEvents', () => {
           joinTag: newGame.joinTag,
           isCreator: false,
           gameStatus: newGame.gameStatus,
+          playersCount: 1,
         }),
       ).to.be.true;
     });
@@ -557,116 +679,6 @@ describe('gameIOEvents', () => {
   //           )
   //         );
   //       });
-  //     });
-  //   });
-
-  //   describe('startGame', () => {
-  //     it("doesn't start game if only on player", async () => {
-  //       const socketId = 'sock-id';
-  //       const username = 'titan';
-  //       const newGame = await gameService.createGame(socketId, username);
-  //       await Game.findByIdAndUpdate(newGame.id, {
-  //         $set: { gameStatus: 'PENDING' },
-  //       });
-
-  //       expect(socket.emit.called).to.be.false;
-
-  //       await gameIOEvents.startGameRoom(
-  //         { io, socket },
-  //         { socketId, gameId: newGame.id }
-  //       );
-
-  //       expect(socket.emit.called).to.be.true;
-  //       expect(
-  //         socket.emit.calledWith(IOEvents.error, {
-  //           message: 'Must have more than 1 player to start game',
-  //         })
-  //       ).to.be.true;
-  //     });
-
-  //     it('emits error if already started', async () => {
-  //       const socketId = 'sock-id';
-  //       const username = 'titan';
-  //       const newGame = await gameService.createGame(socketId, username);
-  //       await Game.findByIdAndUpdate(newGame.id, {
-  //         $set: { gameStatus: 'STARTED' },
-  //       });
-
-  //       expect(socket.emit.called).to.be.false;
-
-  //       await gameIOEvents.startGameRoom(
-  //         { io, socket },
-  //         { socketId, gameId: newGame.id }
-  //       );
-
-  //       expect(socket.emit.called).to.be.true;
-  //       expect(
-  //         socket.emit.calledWith(IOEvents.error, {
-  //           message: 'Game already started',
-  //         })
-  //       ).to.be.true;
-  //     });
-
-  //     it("emits error if user didn't start game", async () => {
-  //       const socketId = 'sock-id';
-  //       const username = 'titan';
-  //       const newGame = await gameService.createGame(socketId, username);
-
-  //       expect(socket.emit.called).to.be.false;
-
-  //       await gameIOEvents.startGameRoom(
-  //         { io, socket },
-  //         { socketId: 's', gameId: newGame.id }
-  //       );
-
-  //       expect(socket.emit.called).to.be.true;
-  //       expect(
-  //         socket.emit.calledWith(IOEvents.error, {
-  //           message: 'Unauthorized to start game',
-  //         })
-  //       ).to.be.true;
-  //     });
-
-  //     it('starts game', async () => {
-  //       const socketId = 'sock-id';
-  //       const username = 'titan';
-  //       const newGame = await gameService.createGame(socketId, username);
-  //       await gameService.joinGame(newGame.id, {
-  //         socketId: 'sock-id-2',
-  //         username: 'eren',
-  //       });
-
-  //       expect(socket.emit.called).to.be.false;
-  //       expect(io.in.called).to.be.false;
-
-  //       await gameIOEvents.startGameRoom(
-  //         { io, socket },
-  //         { socketId, gameId: newGame.id }
-  //       );
-
-  //       // TODO: Retest
-  //       const gameDb = (await Game.findById(newGame.id)).toJSON();
-  //       expect(io.in.calledOnce).to.be.true;
-  //       expect(io.in.calledWithExactly(newGame.id)).to.be.true;
-  //       expect(io.in(newGame.id).emit.calledOnce).to.be.true;
-  //       // Failing deep assertion
-  //       expect(
-  //         io.in(newGame.id).emit.calledWith(gameIOEvents.gameEvents.startedGame, {
-  //           currentPlayerSocketId: newGame.currentPlayerSocketId,
-  //           players: gameDb.players,
-  //         })
-  //       ).to.be.true;
-  //       expect(socket.emit.calledTwice).to.be.true;
-  //       expect(
-  //         socket.emit
-  //           .getCall(0)
-  //           .calledWith(playerEvents.playerCards, gameDb.players[0].cards)
-  //       ).to.be.true;
-  //       expect(
-  //         socket.emit
-  //           .getCall(1)
-  //           .calledWith(playerEvents.playerCards, gameDb.players[1].cards)
-  //       ).to.be.true;
   //     });
   //   });
 });

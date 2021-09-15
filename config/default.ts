@@ -1,5 +1,5 @@
 export default {
   port: 4000,
-  host: 'localhost',
-  dbUri: 'mongodb://localhost:27017/rest-api',
+  host: '0.0.0.0',
+  dbUri: 'mongodb://localhost:27017/poker-api',
 };

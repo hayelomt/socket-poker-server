@@ -42,7 +42,6 @@ export interface IGame extends Document {
   currentSuite: string;
   currentValue: string;
   currentPlayerHasDrawnCard: boolean;
-  firstMovePlayed: boolean;
   gameStatus: string;
 }
 

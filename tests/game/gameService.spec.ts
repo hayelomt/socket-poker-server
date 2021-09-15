@@ -265,9 +265,13 @@ describe('GameService', () => {
 
       expect(uGame.handSize).to.equal(3);
       expect(uGame.deck.length).to.equal(55 - 7);
-      expect(uGame.players[0].cards.length).to.equal(4);
+      expect(uGame.players[0].cards.length).to.equal(3);
       expect(uGame.players[1].cards.length).to.equal(3);
       expect(uGame.currentPlayerSocketId).to.equal(socketId);
+      expect(uGame.topCard).to.exist;
+      expect(uGame.topCard.identifier).to.exist;
+      expect(uGame.currentSuite).to.equal(uGame.topCard.suite);
+      expect(uGame.currentValue).to.equal(uGame.topCard.value);
     });
   });
 

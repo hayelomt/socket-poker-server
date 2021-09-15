@@ -2,7 +2,7 @@ import config from 'config';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
 import connectDb from './database/connectDb';
-import routes from './modules/routes';
+// import routes from './modules/routes';
 import app from './app';
 import logger from './utils/logger';
 import sockets from './modules/sockets';
