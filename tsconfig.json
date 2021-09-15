@@ -20,5 +20,6 @@
     "resolveJsonModule": true,
     "importHelpers": false
   },
-  "exclude": ["node_modules"]
+  "include": ["src", "tests", "config"],
+  "exclude": ["**/node_modules", "**/.*/"]
 }

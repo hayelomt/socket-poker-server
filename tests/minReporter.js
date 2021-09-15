@@ -6,10 +6,10 @@ function Reporter(runner) {
 
   runner.on('start', function () {
     // clear screen
-    // process.stdout.write('\033[2J');
+    process.stdout.write('\033[2J');
     // move cursor to the top
-    // process.stdout.write('\u001b[1;3H');
-    console.clear();
+    process.stdout.write('\u001b[1;3H');
+    // console.clear();
   });
 }
 
