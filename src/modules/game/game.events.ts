@@ -139,8 +139,8 @@ export const joinGameRoom = async (
 
 export const createGameRoom = async (
   { socket }: SocketArg,
-  username?: string,
-  socketId?: string,
+  username: string,
+  socketId: string,
 ) => {
   try {
     const newGame = await gameService.createGame(socketId, username);

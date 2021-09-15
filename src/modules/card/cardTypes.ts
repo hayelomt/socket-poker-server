@@ -13,7 +13,31 @@ export type PokerValue =
   | 'queen'
   | 'king';
 
+export const pokerCardValues = {
+  1: '1',
+  2: '2',
+  3: '3',
+  4: '4',
+  5: '5',
+  6: '6',
+  7: '7',
+  8: '8',
+  9: '9',
+  10: '19',
+  jack: 'jack',
+  queen: 'queen',
+  king: 'king',
+};
+
 export type PokerSuite = 'club' | 'diamond' | 'heart' | 'spade' | 'joker';
+
+export const pokerSuiteValues = {
+  club: 'club',
+  diamond: 'diamond',
+  heart: 'heart',
+  spade: 'spade',
+  joker: 'joker',
+};
 
 export type PokerIdentifers =
   | 'club_1'
