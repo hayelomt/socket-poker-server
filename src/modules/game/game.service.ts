@@ -195,27 +195,3 @@ export const diffArray = (srcArr: string[], diffArr: string[]) => {
 
   return newArr;
 };
-
-export const updatePlayerCards = async (
-  curGame: IGame,
-  playerIndex: number,
-  movedDeck: ICard[],
-) => {
-  const playerCards = curGame.players[playerIndex].cards;
-  const movedIdentifiers = movedDeck.map(item => item.identifier);
-  const cardIdentifiers = playerCards.map(item => item.identifier);
-  const diffIdentifiers = diffArray(cardIdentifiers, movedIdentifiers);
-  const newCards = playerCards.filter(item =>
-    diffIdentifiers.includes(item.identifier),
-  );
-  const { players } = curGame;
-  players[playerIndex].cards = newCards;
-
-  return Game.findByIdAndUpdate(
-    curGame.id,
-    {
-      players,
-    },
-    { new: true },
-  );
-};

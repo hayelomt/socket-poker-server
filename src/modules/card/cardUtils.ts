@@ -2,13 +2,14 @@ import { ICard } from '../game/game.interfaces';
 
 export const shuffle = (deck: ICard[]) => {
   const tempDeck = [...deck];
-  const deckLength = tempDeck.length;
-  for (let i = 0; i < deckLength; i++) {
-    const randomIndex = Math.floor(Math.random() * deckLength);
-    const temp = tempDeck[i];
-    tempDeck[i] = tempDeck[randomIndex];
-    tempDeck[randomIndex] = temp;
-  }
+  // TODO: UnComment
+  // const deckLength = tempDeck.length;
+  // for (let i = 0; i < deckLength; i++) {
+  //   const randomIndex = Math.floor(Math.random() * deckLength);
+  //   const temp = tempDeck[i];
+  //   tempDeck[i] = tempDeck[randomIndex];
+  //   tempDeck[randomIndex] = temp;
+  // }
 
   return tempDeck;
 };

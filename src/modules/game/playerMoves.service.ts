@@ -10,13 +10,12 @@ const playerMoves = {
     const { players } = game;
     let { deck, currentHand } = game;
 
-    if (playerIndex !== -1) {
-      const newCards = diffCards(game.players[playerIndex].cards, cards);
-      players[playerIndex].cards = newCards;
-      // TODO: Add shuffle
-      deck = [...deck, ...cards];
-      currentHand = cards;
-    }
+    const newCards = diffCards(game.players[playerIndex].cards, cards);
+    // console.log({ cards, newCards });
+    players[playerIndex].cards = newCards;
+    // TODO: Add shuffle
+    deck = [...deck, ...cards];
+    currentHand = cards;
 
     return Game.findByIdAndUpdate(
       game.id,
@@ -29,7 +28,7 @@ const playerMoves = {
   async moveToNextPlayer(game: IGame, { skips = 0 }) {
     const nextPlayer = getNextPlayer({
       players: game.players,
-      currentPlayerSocketId: game.currentPlayerSocketId,
+      currentPlayerSocketId: game.currentPlayerSocketId!,
       direction: game.direction,
       skips,
     });
@@ -121,6 +120,15 @@ const playerMoves = {
       { new: true },
     );
   },
+  async clearDealtCards(game: IGame) {
+    return Game.findByIdAndUpdate(
+      game.id,
+      {
+        $set: { lastDealtCards: [] },
+      },
+      { new: true },
+    );
+  },
   async dealCard(game: IGame, cardCount: number, playerSocketId: string) {
     const playerIndex = game.players.findIndex(
       i => i.socketId === playerSocketId,
@@ -147,6 +155,7 @@ const playerMoves = {
         { new: true },
       );
     }
+    throw new Error('Player Not Found dealCard');
   },
   async changeDirection(game: IGame) {
     return Game.findByIdAndUpdate(
@@ -160,3 +169,28 @@ const playerMoves = {
 };
 
 export default playerMoves;
+
+// const playerMoves = {
+//   updatePlayerCards = async (
+//     curGame: IGame,
+//     playerIndex: number,
+//     movedDeck: ICard[],
+//   ) => {
+//     const playerCards = curGame.players[playerIndex].cards;
+//     const movedIdentifiers = movedDeck.map(item => item.identifier);
+//     const cardIdentifiers = playerCards.map(item => item.identifier);
+//     const diffIdentifiers = diffArray(cardIdentifiers, movedIdentifiers);
+//     const newCards = playerCards.filter(item =>
+//       diffIdentifiers.includes(item.identifier),
+//     );
+//     const { players } = curGame;
+//     players[playerIndex].cards = newCards;
+
+//     return Game.findByIdAndUpdate(
+//       curGame.id,
+//       {
+//         players,
+//       },
+//       { new: true },
+//     );
+//   };

@@ -1,18 +1,25 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { stubSocketIO, clearDb, stubSocket, genCards } from '../testUtils';
+import {
+  stubSocketIO,
+  clearDb,
+  stubSocket,
+  genCards,
+  stripId,
+} from '../testUtils';
 import * as gameIOEvents from '../../src/modules/game/game.events';
 import * as gameService from '../../src/modules/game/game.service';
 import Game from '../../src/modules/game/game.model';
 import { IOEvents } from '../../src/modules/socket/socket.events';
 import { GameStatus } from '../../src/modules/game/game.interfaces';
 import { cardEvents } from '../../src/modules/card/card.events';
-// const finalizeEvent = require('../../../src/modules/game/finalizeEvent');
+import { cardValMessages } from '../../src/modules/card/cardUtils';
+import { PokerCounts } from '../../src/modules/card/cardTypes';
+import * as finalizeEvent from '../../src/modules/game/finalizeEvent';
 
 const sandbox = sinon.createSandbox();
 let io;
 let socket;
-let finalizeStub;
 const username = 'harry';
 const socketId = 'wand';
 
@@ -20,9 +27,7 @@ describe('gameIOEvents', () => {
   beforeEach(async () => {
     io = stubSocketIO(sandbox);
     socket = stubSocket(sandbox);
-    // finalizeStub = sandbox.stub(finalizeEvent, 'finalizeMove').callsFake(() => {
-    // console.log('Finalize Stub');
-    // });
+    sandbox.stub(finalizeEvent, 'finalizeMove');
     await clearDb();
   });
 
@@ -295,390 +300,513 @@ describe('gameIOEvents', () => {
     });
   });
 
-  //   describe('makeMove validation', async () => {
-  //     const socketId = 'sock-id',
-  //       username = 'titan';
+  describe('makeMove validation', async () => {
+    const socketId = 'sock-id',
+      username = 'titan';
 
-  //     it('game no in STARTED session', async () => {
-  //       expect(socket.emit.called).to.be.false;
+    it('game no in STARTED session', async () => {
+      expect(socket.emit.called).to.be.false;
 
-  //       let curGame = await gameService.createGame(socketId, username);
-  //       curGame = await Game.findByIdAndUpdate(
-  //         curGame.id,
-  //         {
-  //           $set: { gameStatus: 'FINISHED' },
-  //         },
-  //         { new: true }
-  //       );
+      let curGame = await gameService.createGame(socketId, username);
+      curGame = await Game.findByIdAndUpdate(
+        curGame.id,
+        {
+          $set: { gameStatus: 'FINISHED' },
+        },
+        { new: true },
+      );
 
-  //       await gameIOEvents.makeGameMove(
-  //         { io, socket },
-  //         {
-  //           gameId: curGame.id,
-  //           movedDeck: genCards(['spade_1']),
-  //         }
-  //       );
+      await gameIOEvents.makeGameMove(
+        { io, socket },
+        curGame.id,
+        genCards(['spade_1']),
+        '',
+      );
 
-  //       expect(socket.emit.calledOnce).to.be.true;
-  //       expect(
-  //         socket.emit.calledWithExactly(
-  //           IOEvents.error,
-  //           cardValMessages.gameNotStarted()
-  //         )
-  //       );
-  //     });
+      expect(socket.emit.calledOnce).to.be.true;
+      expect(
+        socket.emit.calledWithExactly(
+          IOEvents.error,
+          cardValMessages.gameNotStarted('FINISHED'),
+        ),
+      );
+    });
 
-  //     it('throws error', async () => {
-  //       expect(socket.emit.called).to.be.false;
+    it('throws error / handles crazy', async () => {
+      expect(socket.emit.called).to.be.false;
 
-  //       let curGame = await gameService.createGame(socketId, username);
-  //       curGame = await Game.findByIdAndUpdate(
-  //         curGame.id,
-  //         {
-  //           $set: { currentSuite: 'club', currentValue: '2' },
-  //         },
-  //         { new: true }
-  //       );
+      let curGame = await gameService.createGame(socketId, username);
+      curGame = await Game.findByIdAndUpdate(
+        curGame.id,
+        {
+          $set: { currentSuite: 'club', currentValue: '2' },
+        },
+        { new: true },
+      );
 
-  //       await gameIOEvents.makeGameMove(
-  //         { io, socket },
-  //         {
-  //           gameId: curGame.id,
-  //           movedDeck: genCards(['spade_1']),
-  //         }
-  //       );
+      await gameIOEvents.makeGameMove(
+        { io, socket },
+        curGame.id,
+        genCards(['spade_1']),
+        '',
+      );
 
-  //       expect(socket.emit.calledOnce).to.be.true;
-  //       expect(
-  //         socket.emit.calledWithExactly(
-  //           cardEvents.cardError,
-  //           cardValMessages.singleMismatch()
-  //         )
-  //       );
-  //     });
-  //   });
+      curGame = await Game.findById(curGame.id);
+      expect(curGame.deck.length).to.equal(55 - PokerCounts.crazy);
+      expect(curGame.players[0].cards.length).to.equal(PokerCounts.crazy);
 
-  //   describe('makeMove command moves', async () => {
-  //     const socketId = 'sock-id',
-  //       socketId2 = 'sock-id-2',
-  //       socketId3 = 'sock-id-3',
-  //       socketId4 = 'sock-id-4';
-  //     const username = 'titan',
-  //       username2 = 'eren',
-  //       username3 = 'mikassa',
-  //       username4 = 'jean';
-  //     let curGame;
-  //     3;
+      expect(socket.emit.calledOnce).to.be.true;
+      expect(
+        socket.emit.calledWithExactly(
+          cardEvents.cardError,
+          cardValMessages.singleMismatch(),
+        ),
+      );
+    });
+  });
 
-  //     beforeEach(async () => {
-  //       curGame = await gameService.createGame(socketId, username);
-  //       await gameService.joinGame(curGame.id, {
-  //         socketId: socketId2,
-  //         username: username2,
-  //       });
-  //       await gameService.joinGame(curGame.id, {
-  //         socketId: socketId3,
-  //         username: username3,
-  //       });
-  //       await gameService.joinGame(curGame.id, {
-  //         socketId: socketId4,
-  //         username: username4,
-  //       });
-  //       curGame = await Game.findByIdAndUpdate(curGame.id, {
-  //         $set: {
-  //           currentSuite: 'club',
-  //           currentValue: '1',
-  //           gameStatus: 'STARTED',
-  //         },
-  //       });
-  //     });
+  describe('makeMove command moves', async () => {
+    const socketId = 'sock-id',
+      socketId2 = 'sock-id-2',
+      socketId3 = 'sock-id-3',
+      socketId4 = 'sock-id-4';
+    const username = 'titan',
+      username2 = 'eren',
+      username3 = 'mikassa',
+      username4 = 'jean';
+    let curGame;
+    3;
 
-  //     describe('onRestMove', () => {
-  //       it('makes move single', async () => {
-  //         expect(io.in.called).to.be.false;
+    beforeEach(async () => {
+      curGame = await gameService.createGame(socketId, username);
+      await gameService.joinGame(curGame.id, {
+        socketId: socketId2,
+        username: username2,
+      });
+      await gameService.joinGame(curGame.id, {
+        socketId: socketId3,
+        username: username3,
+      });
+      await gameService.joinGame(curGame.id, {
+        socketId: socketId4,
+        username: username4,
+      });
+      curGame = await Game.findByIdAndUpdate(curGame.id, {
+        $set: {
+          currentSuite: 'club',
+          currentValue: '1',
+          gameStatus: 'STARTED',
+        },
+      });
+    });
 
-  //         await Game.findByIdAndUpdate(
-  //           curGame.id,
-  //           {
-  //             $set: { currentSuite: 'spade', currentValue: 2 },
-  //           },
-  //           { new: true }
-  //         );
+    describe('onDraw', () => {
+      it('deals player 1 card', async () => {
+        expect(io.in.called).to.be.false;
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           {
-  //             gameId: curGame.id,
-  //             movedDeck: genCards(['spade_3']),
-  //             asSuite: 'spade',
-  //           }
-  //         );
+        const { players } = curGame;
+        players[0].cards = genCards(['club_1', 'club_2']);
 
-  //         curGame = await Game.findById(curGame.id);
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              players,
+              lastDealtCards: genCards(['club_1']),
+            },
+          },
+          { new: true },
+        );
 
-  //         expect(curGame.currentSuite).to.equal('spade');
-  //         expect(curGame.currentValue).to.equal('3');
-  //         expect(curGame.topCard.value).to.equal('3');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId2);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWith(curGame.id)).to.be.true;
-  //         expect(io.in().emit.calledOnce).to.be.true;
-  //         expect(io.in().emit.calledWith(playerEvents.playerCurrent, socketId2));
+        await gameIOEvents.drawCardRoom({ io, socket }, curGame.id);
+        curGame = await Game.findById(curGame.id);
 
-  //         expect(finalizeStub.calledOnce).to.be.true;
-  //       });
+        expect(curGame.players[0].cards.length).to.equal(3);
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId)).to.be.true;
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
+      });
+    });
 
-  //       // TODO: Optional add test for multi cards
-  //     });
+    describe('onRestMove', () => {
+      it('makes move single', async () => {
+        expect(io.in.called).to.be.false;
+        const { players } = curGame;
+        players[0].cards = genCards(['club_1', 'spade_3', 'heart_2']);
 
-  //     describe('onSuiteChanger', () => {
-  //       it('changes current suite', async () => {
-  //         expect(io.in.called).to.be.false;
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              players,
+              currentSuite: 'spade',
+              currentValue: 2,
+              lastDealtCards: genCards(['spade_9']),
+            },
+          },
+          { new: true },
+        );
 
-  //         await Game.findByIdAndUpdate(
-  //           curGame.id,
-  //           {
-  //             $set: { currentSuite: 'heart', direction: -1 },
-  //           },
-  //           { new: true }
-  //         );
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['spade_3']),
+          'heart',
+        );
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           {
-  //             gameId: curGame.id,
-  //             movedDeck: genCards(['heart_8']),
-  //             asSuite: 'spade',
-  //           }
-  //         );
+        curGame = await Game.findById(curGame.id);
 
-  //         curGame = await Game.findById(curGame.id);
+        expect(curGame.currentSuite).to.equal('spade');
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(curGame.currentValue).to.equal('3');
+        expect(curGame.topCard.value).to.equal('3');
+        expect(curGame.currentPlayerSocketId).to.equal(socketId2);
+        expect(curGame.players[0].cards.length).to.equal(2);
+        expect(curGame.players[0].cards[0].identifier).to.equal('club_1');
+        expect(curGame.players[0].cards[1].identifier).to.equal('heart_2');
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWith(curGame.id)).to.be.true;
+        expect(io.in().emit.calledOnce).to.be.true;
+        expect(
+          io.in().emit.calledWith(gameIOEvents.gameEvents.playerCurrent, {
+            username: username2,
+            socketId: socketId2,
+          }),
+        );
 
-  //         expect(curGame.currentSuite).to.equal('spade');
-  //         expect(curGame.currentValue).to.equal('8');
-  //         expect(curGame.topCard.value).to.equal('8');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWith(curGame.id)).to.be.true;
-  //         expect(io.in().emit.calledOnce).to.be.true;
-  //         expect(io.in().emit.calledWith(playerEvents.playerCurrent, socketId4));
-  //       });
-  //     });
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId)).to.be.true;
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
 
-  //     describe('onAce', () => {
-  //       it('deals next player', async () => {
-  //         expect(io.in.called).to.be.false;
+        // expect(finalizeStub.calledOnce).to.be.true;
+      });
 
-  //         const { players } = curGame;
-  //         players[0].cards = genCards(['club_1', 'club_2']);
-  //         players[2].cards = genCards(['club_3']);
+      // TODO: Optional add test for multi cards
+    });
 
-  //         await Game.findByIdAndUpdate(
-  //           curGame.id,
-  //           {
-  //             $set: {
-  //               players,
-  //               currentSuite: 'heart',
-  //               lastDealtCards: genCards(['club_1']),
-  //             },
-  //           },
-  //           { new: true }
-  //         );
+    describe('onSuiteChanger', () => {
+      it('changes current suite', async () => {
+        expect(io.in.called).to.be.false;
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           {
-  //             gameId: curGame.id,
-  //             movedDeck: genCards(['heart_1']),
-  //           }
-  //         );
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              currentSuite: 'heart',
+              direction: -1,
+              lastDealtCards: genCards(['club_1', 'club_4']),
+            },
+          },
+          { new: true },
+        );
 
-  //         curGame = await Game.findById(curGame.id);
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['heart_8']),
+          'spade',
+        );
 
-  //         expect(curGame.currentSuite).to.equal('heart');
-  //         expect(curGame.currentValue).to.equal('1');
-  //         expect(curGame.topCard.value).to.equal('1');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId2);
-  //         expect(curGame.players[1].cards.length).to.equal(2);
-  //         expect(curGame.deck.length).to.equal(53);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWith(curGame.id)).to.be.true;
-  //         expect(io.in().emit.calledOnce).to.be.true;
-  //         expect(io.in().emit.calledWith(playerEvents.playerCurrent, socketId2))
-  //           .to.be.true;
-  //       });
-  //     });
+        curGame = await Game.findById(curGame.id);
 
-  //     describe('onSkipper', () => {
-  //       it('skips player', async () => {
-  //         expect(io.in.called).to.be.false;
-  //         expect(io.to.called).to.be.false;
+        expect(curGame.currentSuite).to.equal('spade');
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(curGame.currentValue).to.equal('8');
+        expect(curGame.topCard.value).to.equal('8');
+        expect(curGame.currentPlayerSocketId).to.equal(socketId4);
+        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.getCall(0).calledWith(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWith(curGame.id)).to.be.true;
+        expect(io.in().emit.calledTwice).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(0)
+            .calledWith(gameIOEvents.gameEvents.playerCurrent, {
+              username: username4,
+              socketId: socketId4,
+            }),
+        );
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWith(cardEvents.cardCurrentSuite, 'spade'),
+        );
+      });
+    });
 
-  //         const { players } = curGame;
-  //         players[0].cards = genCards(['club_1', 'club_2']);
-  //         players[2].cards = genCards(['club_3']);
+    describe('onAce', () => {
+      it('deals next player', async () => {
+        expect(io.in.called).to.be.false;
 
-  //         await Game.findByIdAndUpdate(
-  //           curGame.id,
-  //           {
-  //             $set: {
-  //               players,
-  //               currentSuite: 'heart',
-  //               lastDealtCards: genCards(['club_1']),
-  //             },
-  //           },
-  //           { new: true }
-  //         );
+        const { players } = curGame;
+        players[0].cards = genCards(['club_1', 'club_2']);
+        players[2].cards = genCards(['club_3']);
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: genCards(['heart_5']) }
-  //         );
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              players,
+              currentSuite: 'heart',
+              lastDealtCards: genCards(['club_1']),
+            },
+          },
+          { new: true },
+        );
 
-  //         curGame = await Game.findById(curGame.id);
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['heart_1']),
+          '',
+        );
 
-  //         expect(curGame.currentSuite).to.equal('heart');
-  //         expect(curGame.currentValue).to.equal('5');
-  //         expect(curGame.topCard.value).to.equal('5');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId3);
-  //         expect(curGame.players[0].cards.length).to.equal(1);
-  //         expect(curGame.players[2].cards.length).to.equal(2);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWithExactly(curGame.id)).to.be.true;
-  //         expect(io.in().emit.called).to.be.true;
-  //         expect(
-  //           io.in().emit.calledWithExactly(playerEvents.playerCurrent, socketId3)
-  //         ).to.be.true;
-  //         expect(io.to.calledTwice).to.be.true;
-  //         expect(io.to().emit.calledTwice).to.be.true;
-  //         expect(io.to.calledWith(socketId3)).to.be.true;
-  //       });
-  //     });
+        curGame = await Game.findById(curGame.id);
 
-  //     describe('onDirectionChanger', () => {
-  //       it('changes direction', async () => {
-  //         expect(io.in.called).to.be.false;
+        expect(curGame.currentSuite).to.equal('heart');
+        expect(curGame.currentValue).to.equal('1');
+        expect(curGame.topCard.value).to.equal('1');
+        expect(curGame.currentPlayerSocketId).to.equal(socketId2);
+        expect(curGame.players[1].cards.length).to.equal(PokerCounts.ace);
+        expect(curGame.deck.length).to.equal(55 - PokerCounts.ace);
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWith(curGame.id)).to.be.true;
+        expect(io.in().emit.calledOnce).to.be.true;
+        expect(
+          io.in().emit.calledWith(gameIOEvents.gameEvents.playerCurrent, {
+            username: username2,
+            socketId: socketId2,
+          }),
+        ).to.be.true;
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId2)).to.be.true;
+        curGame = curGame.toJSON();
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.players[1].cards),
+            ),
+        ).to.be.true;
+      });
+    });
 
-  //         await Game.findByIdAndUpdate(curGame.id, {
-  //           $set: { currentSuite: 'spade' },
-  //         });
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: genCards(['spade_7']) }
-  //         );
+    describe('onSkipper', () => {
+      it('skips player', async () => {
+        expect(io.in.called).to.be.false;
+        expect(io.to.called).to.be.false;
 
-  //         curGame = await Game.findById(curGame.id);
+        const { players } = curGame;
+        players[0].cards = genCards(['club_1', 'club_2', 'club_3']);
+        players[2].cards = genCards(['club_3']);
 
-  //         expect(curGame.direction).to.equal(-1);
-  //         expect(curGame.topCard.value).to.equal('7');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
-  //         expect(curGame.currentSuite).to.equal('spade');
-  //         expect(curGame.currentValue).to.equal('7');
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWithExactly(curGame.id)).to.be.true;
-  //         expect(io.in().emit.called).to.be.true;
-  //         expect(
-  //           io.in().emit.calledWithExactly(playerEvents.playerCurrent, socketId4)
-  //         ).to.be.true;
-  //       });
-  //     });
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              players,
+              currentSuite: 'heart',
+              lastDealtCards: genCards(['club_1', 'club_2']),
+            },
+          },
+          { new: true },
+        );
 
-  //     describe('onJoker', () => {
-  //       it('deals next player cards', async () => {
-  //         expect(io.in.called).to.be.false;
-  //         expect(socket.emit.called).to.be.false;
-  //         await Game.findByIdAndUpdate(curGame.id, {
-  //           $set: {
-  //             direction: -1,
-  //             firstMovePlayed: true,
-  //             currentPlayerHasDrawnCard: true,
-  //           },
-  //         });
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['heart_5']),
+          '',
+        );
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: genCards(['joker_1']) }
-  //         );
+        curGame = await Game.findById(curGame.id);
 
-  //         curGame = await Game.findById(curGame.id);
-  //         expect(curGame.currentSuite).to.equal('joker');
-  //         expect(curGame.topCard.suite).to.equal('joker');
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
-  //         expect(curGame.players[3].cards.length).to.equal(10);
-  //         expect(curGame.deck.length).to.equal(45);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWith(curGame.id)).to.be.true;
-  //         expect(io.in().emit.called).to.be.true;
-  //         expect(
-  //           io
-  //             .in(curGame.id)
-  //             .emit.calledWithExactly(playerEvents.playerCurrent, socketId4)
-  //         ).to.be.true;
-  //         expect(socket.emit.called).to.be.true;
-  //         expect(
-  //           socket.emit.calledWithExactly(
-  //             playerEvents.playerCards,
-  //             curGame.players[2].cards
-  //           )
-  //         );
-  //       });
-  //     });
+        expect(curGame.currentSuite).to.equal('heart');
+        expect(curGame.currentValue).to.equal('5');
+        expect(curGame.topCard.value).to.equal('5');
+        expect(curGame.currentPlayerSocketId).to.equal(socketId3);
+        expect(curGame.players[0].cards.length).to.equal(1);
+        expect(curGame.players[2].cards.length).to.equal(3);
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.called).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
+              username: username3,
+              socketId: socketId3,
+            }),
+        ).to.be.true;
+        expect(io.to.calledTwice).to.be.true;
+        expect(io.to.getCall(0).calledWith(socketId)).to.be.true;
+        expect(io.to.getCall(1).calledWith(socketId3)).to.be.true;
+        expect(io.to().emit.calledTwice).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.getCall(0)
+            .calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.getCall(1)
+            .calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[2].cards),
+            ),
+        ).to.be.true;
+      });
+    });
 
-  //     describe('emptyDeck', () => {
-  //       it('moves to next player', async () => {
-  //         expect(io.in.called).to.be.false;
-  //         await Game.findByIdAndUpdate(curGame.id, {
-  //           $set: { firstMovePlayed: true, currentPlayerHasDrawnCard: true },
-  //         });
+    describe('onDirectionChanger', () => {
+      it('changes direction', async () => {
+        expect(io.in.called).to.be.false;
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: [] }
-  //         );
+        await Game.findByIdAndUpdate(curGame.id, {
+          $set: { currentSuite: 'spade', lastDealtCards: genCards(['club_4']) },
+        });
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['spade_7']),
+          '',
+        );
 
-  //         curGame = await Game.findById(curGame.id);
-  //         expect(curGame.currentPlayerSocketId).to.equal(socketId2);
-  //         expect(io.in.called).to.be.true;
-  //         expect(io.in.calledWithExactly(curGame.id)).to.be.true;
-  //         expect(io.in().emit.called).to.be.true;
-  //         expect(io.in().emit.calledWith(playerEvents.playerCurrent, socketId2))
-  //           .to.be.true;
-  //       });
+        curGame = await Game.findById(curGame.id);
 
-  //       it('emits error if no cards drawn', async () => {
-  //         expect(socket.emit.called).to.be.false;
-  //         await Game.findByIdAndUpdate(curGame.id, {
-  //           $set: { firstMovePlayed: true },
-  //         });
+        expect(curGame.direction).to.equal(-1);
+        expect(curGame.topCard.value).to.equal('7');
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(curGame.currentPlayerSocketId).to.equal(socketId4);
+        expect(curGame.currentSuite).to.equal('spade');
+        expect(curGame.currentValue).to.equal('7');
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.calledTwice).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(0)
+            .calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
+              username: username4,
+              socketId: socketId4,
+            }),
+        ).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWithExactly(cardEvents.cardDirection, -1),
+        ).to.be.true;
+      });
+    });
 
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: [] }
-  //         );
+    describe('onJoker', () => {
+      it('deals next player cards', async () => {
+        expect(io.in.called).to.be.false;
+        expect(socket.emit.called).to.be.false;
+        await Game.findByIdAndUpdate(curGame.id, {
+          $set: {
+            direction: -1,
+            firstMovePlayed: true,
+            currentPlayerHasDrawnCard: true,
+          },
+        });
 
-  //         expect(socket.emit.calledOnce).to.be.true;
-  //         expect(
-  //           socket.emit.calledWithExactly(
-  //             cardEvents.cardPlayFail,
-  //             'Draw a card from deck or play hand'
-  //           )
-  //         );
-  //       });
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          genCards(['joker_1']),
+          '',
+        );
 
-  //       it('emits error if no first move', async () => {
-  //         expect(socket.emit.called).to.be.false;
-  //         await gameIOEvents.makeGameMove(
-  //           { io, socket },
-  //           { gameId: curGame.id, socketId, movedDeck: [] }
-  //         );
-  //         expect(socket.emit.calledOnce).to.be.true;
-  //         expect(
-  //           socket.emit.calledWithExactly(
-  //             cardEvents.cardPlayFail,
-  //             "Can't have empty deck on first move"
-  //           )
-  //         );
-  //       });
-  //     });
-  //   });
+        curGame = await Game.findById(curGame.id);
+        expect(curGame.currentSuite).to.equal('joker');
+        expect(curGame.topCard.suite).to.equal('joker');
+        expect(curGame.lastDealtCards.length).to.equal(PokerCounts.joker);
+        expect(curGame.currentPlayerSocketId).to.equal(socketId4);
+        expect(curGame.players[3].cards.length).to.equal(PokerCounts.joker);
+        expect(curGame.deck.length).to.equal(55 - PokerCounts.joker);
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWith(curGame.id)).to.be.true;
+        expect(io.in().emit.called).to.be.true;
+        expect(
+          io
+            .in(curGame.id)
+            .emit.calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
+              username: username4,
+              socketId: socketId4,
+            }),
+        ).to.be.true;
+        expect(io.to.called).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWithExactly(
+              gameIOEvents.gameEvents.playerCards,
+              curGame.players[2].cards,
+            ),
+        );
+      });
+    });
+
+    describe('emptyDeck', () => {
+      it('moves to next player', async () => {
+        expect(io.in.called).to.be.false;
+        await Game.findByIdAndUpdate(curGame.id, {
+          $set: {
+            firstMovePlayed: true,
+            currentPlayerHasDrawnCard: true,
+            lastDealtCards: genCards(['club_4']),
+          },
+        });
+
+        await gameIOEvents.makeGameMove(
+          { io, socket },
+          curGame.id,
+          [],
+          socketId,
+        );
+
+        curGame = await Game.findById(curGame.id);
+        expect(curGame.currentPlayerSocketId).to.equal(socketId2);
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(io.in.called).to.be.true;
+        expect(io.in.calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.called).to.be.true;
+        expect(
+          io.in().emit.calledWith(gameIOEvents.gameEvents.playerCurrent, {
+            username: username2,
+            socketId: socketId2,
+          }),
+        ).to.be.true;
+      });
+    });
+  });
 });

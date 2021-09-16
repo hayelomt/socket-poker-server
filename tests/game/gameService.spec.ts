@@ -30,32 +30,6 @@ describe('GameService', () => {
     sandbox.restore();
   });
 
-  describe('updatePlayerCards,', () => {
-    it('updates a players card', async () => {
-      let curGame = await createGame('s1', 'u1');
-      await joinGame(curGame.id, { socketId: 's1', username: 'u1' });
-      curGame = await Game.findById(curGame.id);
-      const { players } = curGame;
-      players[0].cards = genCards(['club_1', 'club_2']);
-      players[1].cards = genCards(['club_1', 'club_2', 'diamond_1']);
-      await Game.findByIdAndUpdate(curGame.id, {
-        players,
-      });
-      curGame = await Game.findById(curGame.id);
-
-      await gameService.updatePlayerCards(
-        curGame,
-        1,
-        genCards(['club_1', 'diamond_1']),
-      );
-      curGame = await Game.findById(curGame.id);
-
-      expect(curGame.players[0].cards.length).to.equal(2);
-      expect(curGame.players[1].cards.length).to.equal(1);
-      expect(curGame.players[1].cards[0].identifier).to.equal('club_2');
-    });
-  });
-
   describe('diffArr', () => {
     it('differentiates', () => {
       expect(gameService.diffArray(['1', '2'], [])).to.deep.equal(['1', '2']);

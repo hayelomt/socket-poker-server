@@ -34,7 +34,7 @@ export interface IGame extends Document {
   deck: ICard[];
   players: [IPlayer];
   topCard?: ICard;
-  currentPlayerSocketId?: string;
+  currentPlayerSocketId: string;
   currentHand: ICard[];
   lastDealtCards: ICard[];
   handSize: number;

@@ -1,4 +1,4 @@
-import { Schema, model, Document, models } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 import { CardType, GameStatus, IGame, PlayerType } from './game.interfaces';
 
 const schema = new Schema<IGame>(
@@ -13,7 +13,7 @@ const schema = new Schema<IGame>(
     currentPlayerSocketId: String,
     currentHand: [CardType],
     lastDealtCards: [CardType],
-    handSize: { type: Number, default: 3 },
+    handSize: { type: Number, default: 12 },
     direction: {
       type: Number,
       default: 1,
