@@ -47,6 +47,7 @@ export const cardRules = {
     const indexOf7 = drawnCards.findIndex(
       item => item.value === pokerCardValues['7'],
     );
+
     if (indexOf7 !== -1) {
       return [false, null];
     }
@@ -84,10 +85,10 @@ export const cardRules = {
     currentValue: string,
     drawnCards: ICard[],
   ) {
-    if (currentSuite === pokerSuiteValues.joker || !currentSuite) {
-      return [true, null];
-    }
     if (drawnCards.length === 1) {
+      if (currentSuite === pokerSuiteValues.joker || !currentSuite) {
+        return [true, null];
+      }
       if (
         drawnCards[0].suite === currentSuite ||
         drawnCards[0].value === currentValue

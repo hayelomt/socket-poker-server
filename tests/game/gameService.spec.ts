@@ -97,8 +97,17 @@ describe('GameService', () => {
         { socketId: 's3', username: 'u3' },
         { socketId: 's4', username: 'u4' },
       ] as IPlayer[];
+      let nxtPlayer: any;
 
-      let nxtPlayer = gameService.getNextPlayer({
+      nxtPlayer = gameService.getNextPlayer({
+        players: [{ socketId: 's1', username: 'u1' } as IPlayer],
+        currentPlayerSocketId: 's1',
+        direction: -1,
+        skips: 1,
+      });
+      expect(nxtPlayer).to.deep.equal({ socketId: 's1', username: 'u1' });
+
+      nxtPlayer = gameService.getNextPlayer({
         players,
         currentPlayerSocketId: 's1',
       });
@@ -106,6 +115,13 @@ describe('GameService', () => {
         { socketId: 's2', username: 'u2' },
         'next +1',
       );
+
+      nxtPlayer = gameService.getNextPlayer({
+        players: [{ socketId: 's1', username: 'u1' } as IPlayer],
+        currentPlayerSocketId: 's1',
+        direction: -1,
+      });
+      expect(nxtPlayer).to.deep.equal({ socketId: 's1', username: 'u1' });
 
       nxtPlayer = gameService.getNextPlayer({
         players,

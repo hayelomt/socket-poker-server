@@ -13,7 +13,7 @@ const schema = new Schema<IGame>(
     currentPlayerSocketId: String,
     currentHand: [CardType],
     lastDealtCards: [CardType],
-    handSize: { type: Number, default: 12 },
+    handSize: { type: Number, default: 3 },
     direction: {
       type: Number,
       default: 1,

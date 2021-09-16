@@ -21,6 +21,9 @@ export const getNextPlayer = ({
   direction = 1,
   skips = 0,
 }: NextPlayerArg) => {
+  if (players.length === 1) {
+    return players[0];
+  }
   const curIndex = players.findIndex(
     item => item.socketId === currentPlayerSocketId,
   );

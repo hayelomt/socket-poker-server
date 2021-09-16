@@ -35,125 +35,125 @@ describe('gameIOEvents', () => {
     sandbox.restore();
   });
 
-  // describe('startGame', () => {
-  //   it("doesn't start game if only 1 player", async () => {
-  //     const socketId = 'sock-id';
-  //     const username = 'titan';
-  //     const newGame = await gameService.createGame(socketId, username);
-  //     await Game.findByIdAndUpdate(newGame.id, {
-  //       $set: { gameStatus: 'PENDING' },
-  //     });
+  describe('startGame', () => {
+    it("doesn't start game if only 1 player", async () => {
+      const socketId = 'sock-id';
+      const username = 'titan';
+      const newGame = await gameService.createGame(socketId, username);
+      await Game.findByIdAndUpdate(newGame.id, {
+        $set: { gameStatus: 'PENDING' },
+      });
 
-  //     expect(socket.emit.called).to.be.false;
+      expect(socket.emit.called).to.be.false;
 
-  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+      await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
 
-  //     expect(socket.emit.called).to.be.true;
-  //     expect(
-  //       socket.emit.calledWith(IOEvents.error, {
-  //         message: 'Must have more than 1 player to start game',
-  //       }),
-  //     ).to.be.true;
-  //   });
+      expect(socket.emit.called).to.be.true;
+      expect(
+        socket.emit.calledWith(IOEvents.error, {
+          message: 'Must have more than 1 player to start game',
+        }),
+      ).to.be.true;
+    });
 
-  //   it('emits error if already started', async () => {
-  //     const socketId = 'sock-id';
-  //     const username = 'titan';
-  //     const newGame = await gameService.createGame(socketId, username);
-  //     await Game.findByIdAndUpdate(newGame.id, {
-  //       $set: { gameStatus: 'STARTED' },
-  //     });
+    it('emits error if already started', async () => {
+      const socketId = 'sock-id';
+      const username = 'titan';
+      const newGame = await gameService.createGame(socketId, username);
+      await Game.findByIdAndUpdate(newGame.id, {
+        $set: { gameStatus: 'STARTED' },
+      });
 
-  //     expect(socket.emit.called).to.be.false;
+      expect(socket.emit.called).to.be.false;
 
-  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+      await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
 
-  //     expect(socket.emit.called).to.be.true;
-  //     expect(
-  //       socket.emit.calledWith(IOEvents.error, {
-  //         message: 'Game already started',
-  //       }),
-  //     ).to.be.true;
-  //   });
+      expect(socket.emit.called).to.be.true;
+      expect(
+        socket.emit.calledWith(IOEvents.error, {
+          message: 'Game already started',
+        }),
+      ).to.be.true;
+    });
 
-  //   it("emits error if user didn't start game", async () => {
-  //     const socketId = 'sock-id';
-  //     const username = 'titan';
-  //     const newGame = await gameService.createGame(socketId, username);
+    it("emits error if user didn't start game", async () => {
+      const socketId = 'sock-id';
+      const username = 'titan';
+      const newGame = await gameService.createGame(socketId, username);
 
-  //     expect(socket.emit.called).to.be.false;
+      expect(socket.emit.called).to.be.false;
 
-  //     await gameIOEvents.startGameRoom({ io, socket }, 's', newGame.id);
+      await gameIOEvents.startGameRoom({ io, socket }, 's', newGame.id);
 
-  //     expect(socket.emit.called).to.be.true;
-  //     expect(
-  //       socket.emit.calledWith(IOEvents.error, {
-  //         message: 'Unauthorized to start game',
-  //       }),
-  //     ).to.be.true;
-  //   });
+      expect(socket.emit.called).to.be.true;
+      expect(
+        socket.emit.calledWith(IOEvents.error, {
+          message: 'Unauthorized to start game',
+        }),
+      ).to.be.true;
+    });
 
-  //   it('starts game', async () => {
-  //     const socketId = 'sock-id';
-  //     const username = 'titan';
-  //     const newGame = await gameService.createGame(socketId, username);
-  //     await gameService.joinGame(newGame.id, {
-  //       socketId: 'sock-id-2',
-  //       username: 'eren',
-  //     });
+    it('starts game', async () => {
+      const socketId = 'sock-id';
+      const username = 'titan';
+      const newGame = await gameService.createGame(socketId, username);
+      await gameService.joinGame(newGame.id, {
+        socketId: 'sock-id-2',
+        username: 'eren',
+      });
 
-  //     expect(socket.emit.called).to.be.false;
-  //     expect(io.in.called).to.be.false;
+      expect(socket.emit.called).to.be.false;
+      expect(io.in.called).to.be.false;
 
-  //     await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
+      await gameIOEvents.startGameRoom({ io, socket }, socketId, newGame.id);
 
-  //     const gameDb = (await Game.findById(newGame.id)).toJSON();
-  //     expect(io.to.calledTwice).to.be.true;
-  //     expect(io.in.callCount).to.equal(6);
-  //     // io.in Calls
-  //     expect(
-  //       io
-  //         .in()
-  //         .emit.getCall(0)
-  //         .calledWith(gameIOEvents.gameEvents.startedGame, {
-  //           currentPlayerSocketId: gameDb.currentPlayerSocketId,
-  //           players: gameDb.players,
-  //           topCard: gameDb.topCard,
-  //           direction: gameDb.direction,
-  //         }),
-  //     ).to.be.true;
-  //     expect(
-  //       io.in().emit.getCall(1).calledWith(cardEvents.cardTop, gameDb.topCard),
-  //     ).to.be.true;
-  //     expect(
-  //       io
-  //         .in()
-  //         .emit.getCall(2)
-  //         .calledWith(cardEvents.cardCurrentSuite, gameDb.currentSuite),
-  //     ).to.be.true;
-  //     expect(
-  //       io
-  //         .in()
-  //         .emit.getCall(3)
-  //         .calledWith(cardEvents.cardDirection, gameDb.direction),
-  //     ).to.be.true;
-  //     expect(
-  //       io
-  //         .in()
-  //         .emit.getCall(4)
-  //         .calledWith(gameIOEvents.gameEvents.playerCount, 2),
-  //     ).to.be.true;
-  //     expect(
-  //       io
-  //         .in()
-  //         .emit.getCall(5)
-  //         .calledWith(gameIOEvents.gameEvents.playerCurrent, {
-  //           username,
-  //           socketId,
-  //         }),
-  //     ).to.be.true;
-  //   });
-  // });
+      const gameDb = (await Game.findById(newGame.id)).toJSON();
+      expect(io.to.calledTwice).to.be.true;
+      expect(io.in.callCount).to.equal(6);
+      // io.in Calls
+      expect(
+        io
+          .in()
+          .emit.getCall(0)
+          .calledWith(gameIOEvents.gameEvents.startedGame, {
+            currentPlayerSocketId: gameDb.currentPlayerSocketId,
+            players: gameDb.players,
+            topCard: gameDb.topCard,
+            direction: gameDb.direction,
+          }),
+      ).to.be.true;
+      expect(
+        io.in().emit.getCall(1).calledWith(cardEvents.cardTop, gameDb.topCard),
+      ).to.be.true;
+      expect(
+        io
+          .in()
+          .emit.getCall(2)
+          .calledWith(cardEvents.cardCurrentSuite, gameDb.currentSuite),
+      ).to.be.true;
+      expect(
+        io
+          .in()
+          .emit.getCall(3)
+          .calledWith(cardEvents.cardDirection, gameDb.direction),
+      ).to.be.true;
+      expect(
+        io
+          .in()
+          .emit.getCall(4)
+          .calledWith(gameIOEvents.gameEvents.playerCount, 2),
+      ).to.be.true;
+      expect(
+        io
+          .in()
+          .emit.getCall(5)
+          .calledWith(gameIOEvents.gameEvents.playerCurrent, {
+            username,
+            socketId,
+          }),
+      ).to.be.true;
+    });
+  });
 
   describe('gameInfo', () => {
     it('returns info', async () => {
@@ -178,7 +178,7 @@ describe('gameIOEvents', () => {
     it('emits no game with tag for invalid tag', async () => {
       expect(socket.emit.called).to.be.false;
 
-      await gameIOEvents.joinGameRoom({ socket }, 'join', '', '');
+      await gameIOEvents.joinGameRoom({ socket, io }, 'join', '', '');
 
       expect(socket.emit.called).to.be.true;
       expect(
@@ -196,7 +196,7 @@ describe('gameIOEvents', () => {
 
       const newGame = await gameService.createGame(socketId, username);
       await gameIOEvents.joinGameRoom(
-        { socket },
+        { socket, io },
         newGame.joinTag,
         username,
         '',
@@ -221,7 +221,7 @@ describe('gameIOEvents', () => {
         $set: { gameStatus: GameStatus.Started },
       });
       await gameIOEvents.joinGameRoom(
-        { socket },
+        { socket, io },
         newGame.joinTag,
         username,
         '',
@@ -270,7 +270,7 @@ describe('gameIOEvents', () => {
     it('creates game', async () => {
       expect(socket.emit.called).to.be.false;
       expect(socket.join.called).to.be.false;
-      await gameIOEvents.createGameRoom({ socket }, username, socketId);
+      await gameIOEvents.createGameRoom({ socket, io }, username, socketId);
 
       const newGame = await Game.find();
       expect(newGame.length).to.equal(1);
@@ -289,7 +289,7 @@ describe('gameIOEvents', () => {
     it('sends create error', async () => {
       expect(socket.emit.called).to.be.false;
 
-      await gameIOEvents.createGameRoom({ socket });
+      await gameIOEvents.createGameRoom({ socket, io }, '', '');
 
       expect(socket.emit.called).to.be.true;
       expect(
@@ -400,43 +400,6 @@ describe('gameIOEvents', () => {
       });
     });
 
-    describe('onDraw', () => {
-      it('deals player 1 card', async () => {
-        expect(io.in.called).to.be.false;
-
-        const { players } = curGame;
-        players[0].cards = genCards(['club_1', 'club_2']);
-
-        await Game.findByIdAndUpdate(
-          curGame.id,
-          {
-            $set: {
-              players,
-              lastDealtCards: genCards(['club_1']),
-            },
-          },
-          { new: true },
-        );
-
-        await gameIOEvents.drawCardRoom({ io, socket }, curGame.id);
-        curGame = await Game.findById(curGame.id);
-
-        expect(curGame.players[0].cards.length).to.equal(3);
-        expect(curGame.lastDealtCards.length).to.equal(0);
-        expect(io.to.calledOnce).to.be.true;
-        expect(io.to.calledWith(socketId)).to.be.true;
-        expect(io.to().emit.calledOnce).to.be.true;
-        expect(
-          io
-            .to()
-            .emit.calledWith(
-              gameIOEvents.gameEvents.playerCards,
-              stripId(curGame.toJSON().players[0].cards),
-            ),
-        ).to.be.true;
-      });
-    });
-
     describe('onRestMove', () => {
       it('makes move single', async () => {
         expect(io.in.called).to.be.false;
@@ -473,15 +436,26 @@ describe('gameIOEvents', () => {
         expect(curGame.players[0].cards.length).to.equal(2);
         expect(curGame.players[0].cards[0].identifier).to.equal('club_1');
         expect(curGame.players[0].cards[1].identifier).to.equal('heart_2');
-        expect(io.in.called).to.be.true;
-        expect(io.in.calledWith(curGame.id)).to.be.true;
-        expect(io.in().emit.calledOnce).to.be.true;
+        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.getCall(0).calledWith(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWith(curGame.id)).to.be.true;
+
+        expect(io.in().emit.calledTwice).to.be.true;
         expect(
-          io.in().emit.calledWith(gameIOEvents.gameEvents.playerCurrent, {
-            username: username2,
-            socketId: socketId2,
-          }),
-        );
+          io
+            .in()
+            .emit.getCall(0)
+            .calledWith(gameIOEvents.gameEvents.playerCurrent, {
+              username: username2,
+              socketId: socketId2,
+            }),
+        ).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
 
         expect(io.to.calledOnce).to.be.true;
         expect(io.to.calledWith(socketId)).to.be.true;
@@ -531,10 +505,11 @@ describe('gameIOEvents', () => {
         expect(curGame.currentValue).to.equal('8');
         expect(curGame.topCard.value).to.equal('8');
         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
-        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.calledThrice).to.be.true;
         expect(io.in.getCall(0).calledWith(curGame.id)).to.be.true;
         expect(io.in.getCall(1).calledWith(curGame.id)).to.be.true;
-        expect(io.in().emit.calledTwice).to.be.true;
+        expect(io.in.getCall(2).calledWith(curGame.id)).to.be.true;
+        expect(io.in().emit.calledThrice).to.be.true;
         expect(
           io
             .in()
@@ -543,13 +518,72 @@ describe('gameIOEvents', () => {
               username: username4,
               socketId: socketId4,
             }),
-        );
+        ).to.be.true;
         expect(
           io
             .in()
             .emit.getCall(1)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(2)
             .calledWith(cardEvents.cardCurrentSuite, 'spade'),
+        ).to.be.true;
+
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId)).to.be.true;
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
+      });
+    });
+
+    describe('onDraw', () => {
+      it('deals player 1 card', async () => {
+        expect(io.in.called).to.be.false;
+
+        const { players } = curGame;
+        players[0].cards = genCards(['club_1', 'club_2']);
+
+        await Game.findByIdAndUpdate(
+          curGame.id,
+          {
+            $set: {
+              players,
+              lastDealtCards: genCards(['club_1']),
+            },
+          },
+          { new: true },
         );
+
+        await gameIOEvents.drawCardRoom(
+          { io, socket },
+          curGame.id,
+          curGame.currentPlayerSocketId,
+        );
+        curGame = await Game.findById(curGame.id);
+
+        expect(curGame.players[0].cards.length).to.equal(3);
+        expect(curGame.lastDealtCards.length).to.equal(0);
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId)).to.be.true;
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
       });
     });
 
@@ -587,24 +621,47 @@ describe('gameIOEvents', () => {
         expect(curGame.topCard.value).to.equal('1');
         expect(curGame.currentPlayerSocketId).to.equal(socketId2);
         expect(curGame.players[1].cards.length).to.equal(PokerCounts.ace);
-        expect(curGame.deck.length).to.equal(55 - PokerCounts.ace);
-        expect(io.in.called).to.be.true;
+        expect(curGame.deck.length).to.equal(55 - PokerCounts.ace + 1);
+        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.getCall(0).calledWith(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWith(curGame.id)).to.be.true;
         expect(io.in.calledWith(curGame.id)).to.be.true;
-        expect(io.in().emit.calledOnce).to.be.true;
+        expect(io.in().emit.calledTwice).to.be.true;
         expect(
-          io.in().emit.calledWith(gameIOEvents.gameEvents.playerCurrent, {
-            username: username2,
-            socketId: socketId2,
-          }),
+          io
+            .in()
+            .emit.getCall(0)
+            .calledWith(gameIOEvents.gameEvents.playerCurrent, {
+              username: username2,
+              socketId: socketId2,
+            }),
         ).to.be.true;
-        expect(io.to.calledOnce).to.be.true;
-        expect(io.to.calledWith(socketId2)).to.be.true;
-        curGame = curGame.toJSON();
-        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
+
+        expect(io.to.calledTwice).to.be.true;
+        expect(io.to.getCall(0).calledWith(socketId)).to.be.true;
+        expect(io.to.getCall(1).calledWith(socketId2)).to.be.true;
+        expect(io.to().emit.calledTwice).to.be.true;
         expect(
           io
             .to()
-            .emit.calledWith(
+            .emit.getCall(0)
+            .calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
+        curGame = curGame.toJSON();
+        expect(
+          io
+            .to()
+            .emit.getCall(1)
+            .calledWith(
               gameIOEvents.gameEvents.playerCards,
               stripId(curGame.players[1].cards),
             ),
@@ -648,25 +705,40 @@ describe('gameIOEvents', () => {
         expect(curGame.currentPlayerSocketId).to.equal(socketId3);
         expect(curGame.players[0].cards.length).to.equal(1);
         expect(curGame.players[2].cards.length).to.equal(3);
-        expect(io.in.called).to.be.true;
-        expect(io.in.calledWithExactly(curGame.id)).to.be.true;
-        expect(io.in().emit.called).to.be.true;
+        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.getCall(0).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.calledTwice).to.be.true;
         expect(
           io
             .in()
-            .emit.calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
+            .emit.getCall(0)
+            .calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
               username: username3,
               socketId: socketId3,
             }),
         ).to.be.true;
-        expect(io.to.calledTwice).to.be.true;
-        expect(io.to.getCall(0).calledWith(socketId)).to.be.true;
-        expect(io.to.getCall(1).calledWith(socketId3)).to.be.true;
-        expect(io.to().emit.calledTwice).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
+
+        expect(io.to.calledThrice).to.be.true;
+        expect(io.to.getCall(1).calledWith(socketId)).to.be.true;
+        expect(io.to.getCall(2).calledWith(socketId3)).to.be.true;
+        expect(io.to().emit.calledThrice).to.be.true;
+        expect(
+          io.to().emit.getCall(0).calledWith(
+            gameIOEvents.gameEvents.playerCards,
+            // stripId(curGame.toJSON().players[0].cards),
+          ),
+        ).to.be.true;
         expect(
           io
             .to()
-            .emit.getCall(0)
+            .emit.getCall(1)
             .calledWith(
               gameIOEvents.gameEvents.playerCards,
               stripId(curGame.toJSON().players[0].cards),
@@ -675,7 +747,7 @@ describe('gameIOEvents', () => {
         expect(
           io
             .to()
-            .emit.getCall(1)
+            .emit.getCall(2)
             .calledWith(
               gameIOEvents.gameEvents.playerCards,
               stripId(curGame.toJSON().players[2].cards),
@@ -706,9 +778,11 @@ describe('gameIOEvents', () => {
         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
         expect(curGame.currentSuite).to.equal('spade');
         expect(curGame.currentValue).to.equal('7');
-        expect(io.in.called).to.be.true;
-        expect(io.in.calledWithExactly(curGame.id)).to.be.true;
-        expect(io.in().emit.calledTwice).to.be.true;
+        expect(io.in.calledThrice).to.be.true;
+        expect(io.in.getCall(0).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in.getCall(2).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.calledThrice).to.be.true;
         expect(
           io
             .in()
@@ -723,6 +797,24 @@ describe('gameIOEvents', () => {
             .in()
             .emit.getCall(1)
             .calledWithExactly(cardEvents.cardDirection, -1),
+        ).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(2)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
+
+        expect(io.to.calledOnce).to.be.true;
+        expect(io.to.calledWith(socketId)).to.be.true;
+        expect(io.to().emit.calledOnce).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.calledWith(
+              gameIOEvents.gameEvents.playerCards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
         ).to.be.true;
       });
     });
@@ -753,24 +845,45 @@ describe('gameIOEvents', () => {
         expect(curGame.currentPlayerSocketId).to.equal(socketId4);
         expect(curGame.players[3].cards.length).to.equal(PokerCounts.joker);
         expect(curGame.deck.length).to.equal(55 - PokerCounts.joker);
-        expect(io.in.called).to.be.true;
-        expect(io.in.calledWith(curGame.id)).to.be.true;
-        expect(io.in().emit.called).to.be.true;
+        expect(io.in.calledTwice).to.be.true;
+        expect(io.in.getCall(0).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in.getCall(1).calledWithExactly(curGame.id)).to.be.true;
+        expect(io.in().emit.calledTwice).to.be.true;
         expect(
           io
             .in(curGame.id)
-            .emit.calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
+            .emit.getCall(0)
+            .calledWithExactly(gameIOEvents.gameEvents.playerCurrent, {
               username: username4,
               socketId: socketId4,
             }),
         ).to.be.true;
-        expect(io.to.called).to.be.true;
+        expect(
+          io
+            .in()
+            .emit.getCall(1)
+            .calledWith(cardEvents.cardTop, curGame.toJSON().topCard),
+        ).to.be.true;
+
+        expect(io.to.calledTwice).to.be.true;
+        expect(io.to.getCall(0).calledWith(socketId)).to.be.true;
+        expect(io.to.getCall(1).calledWith(socketId4)).to.be.true;
         expect(
           io
             .to()
-            .emit.calledWithExactly(
+            .emit.getCall(0)
+            .calledWith(
               gameIOEvents.gameEvents.playerCards,
-              curGame.players[2].cards,
+              stripId(curGame.toJSON().players[0].cards),
+            ),
+        ).to.be.true;
+        expect(
+          io
+            .to()
+            .emit.getCall(1)
+            .calledWithExactly(
+              gameIOEvents.gameEvents.playerCards,
+              curGame.toJSON().players[2].cards,
             ),
         );
       });

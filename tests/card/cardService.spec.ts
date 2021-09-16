@@ -171,6 +171,15 @@ describe('CardService', () => {
       expect(pass).to.be.false;
       expect(err).to.deep.equal(cardUtils.cardValMessages.missing7());
     });
+    it('fails multi if no 7 with joker current', () => {
+      const [pass, err] = validateCardDraw(
+        'joker',
+        '1',
+        genCards(['club_1', 'club_2']),
+      );
+      expect(pass).to.be.false;
+      expect(err).to.deep.equal(cardUtils.cardValMessages.missing7());
+    });
   });
 
   describe('cardRulesOrder', () => {

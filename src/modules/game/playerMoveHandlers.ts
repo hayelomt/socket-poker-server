@@ -1,3 +1,4 @@
+import { Server } from 'socket.io';
 import { stripId } from '../../../tests/testUtils';
 import { cardEvents } from '../card/card.events';
 import { PokerCounts, pokerSuiteValues } from '../card/cardTypes';
@@ -6,17 +7,43 @@ import { ICard, IGame } from './game.interfaces';
 import { getPlayer } from './game.service';
 import playerMoves from './playerMoves.service';
 
+const writePlayerMove = async (io: Server, game: IGame, cards: ICard[]) => {
+  const playerIndex = game.players.findIndex(
+    i => i.socketId === game.currentPlayerSocketId,
+  );
+  const updatedGame = await playerMoves.writePlayerMove(
+    game,
+    game.currentPlayerSocketId,
+    cards,
+  );
+
+  io.to(game.currentPlayerSocketId).emit(
+    gameEvents.playerCards,
+    stripId(updatedGame.toJSON().players[playerIndex].cards),
+  );
+
+  return updatedGame;
+};
+
+const changeSuiteAtopJoker = async (io: Server, game: IGame, card: ICard) => {
+  if (
+    game.currentSuite === pokerSuiteValues.joker ||
+    (game.topCard && game.topCard.suite === pokerSuiteValues.joker)
+  ) {
+    console.log('Change top suite');
+    await playerMoves.setCurrentSuite(game, card.suite);
+    io.in(game.id).emit(cardEvents.cardCurrentSuite, card.suite);
+  }
+};
+
 export default {
   async onRestMove({ io }: SocketArg, game: IGame, cards: ICard[]) {
     const chosenCard = cards[cards.length - 1];
     await playerMoves.setCurrentValue(game, chosenCard.value);
+    await changeSuiteAtopJoker(io, game, chosenCard);
     await playerMoves.setTopCard(game, chosenCard);
 
-    let updatedGame = await playerMoves.writePlayerMove(
-      game,
-      game.currentPlayerSocketId,
-      cards,
-    );
+    let updatedGame = await writePlayerMove(io, game, cards);
     updatedGame = await playerMoves.moveToNextPlayer(game, {});
     await playerMoves.clearDealtCards(updatedGame);
 
@@ -24,13 +51,9 @@ export default {
       gameEvents.playerCurrent,
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
     );
-
-    const playerIndex = updatedGame.players.findIndex(
-      i => i.socketId === game.currentPlayerSocketId,
-    );
-    io.to(game.currentPlayerSocketId).emit(
-      gameEvents.playerCards,
-      stripId(updatedGame.toJSON().players[playerIndex].cards),
+    io.in(updatedGame.id).emit(
+      cardEvents.cardTop,
+      updatedGame.toJSON().topCard,
     );
   },
 
@@ -43,12 +66,17 @@ export default {
     await playerMoves.setCurrentSuite(game, asSuite);
     await playerMoves.setCurrentValue(game, card.value);
     await playerMoves.setTopCard(game, card);
-    const updatedGame = await playerMoves.moveToNextPlayer(game, {});
+    let updatedGame = await writePlayerMove(io, game, [card]);
+    updatedGame = await playerMoves.moveToNextPlayer(game, {});
     await playerMoves.clearDealtCards(updatedGame);
 
     io.in(updatedGame.id).emit(
       gameEvents.playerCurrent,
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
+    );
+    io.in(updatedGame.id).emit(
+      cardEvents.cardTop,
+      updatedGame.toJSON().topCard,
     );
     if (asSuite) {
       io.in(updatedGame.id).emit(cardEvents.cardCurrentSuite, asSuite);
@@ -74,8 +102,11 @@ export default {
 
   async onAce({ io }: SocketArg, game: IGame, card: ICard) {
     await playerMoves.setCurrentValue(game, card.value);
+    await changeSuiteAtopJoker(io, game, card);
+
     await playerMoves.setTopCard(game, card);
-    let updatedGame = await playerMoves.moveToNextPlayer(game, {});
+    let updatedGame = await writePlayerMove(io, game, [card]);
+    updatedGame = await playerMoves.moveToNextPlayer(game, {});
     updatedGame = await playerMoves.dealCard(
       updatedGame,
       PokerCounts.ace,
@@ -85,6 +116,10 @@ export default {
     io.in(updatedGame.id).emit(
       gameEvents.playerCurrent,
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
+    );
+    io.in(updatedGame.id).emit(
+      cardEvents.cardTop,
+      updatedGame.toJSON().topCard,
     );
 
     const player = await updatedGame
@@ -97,10 +132,11 @@ export default {
   },
 
   async onSkipper({ io }: SocketArg, game: IGame, card: ICard) {
-    await playerMoves.setCurrentSuite(game, card.suite);
+    await changeSuiteAtopJoker(io, game, card);
     await playerMoves.setCurrentValue(game, card.value);
     await playerMoves.setTopCard(game, card);
-    let updatedGame = await playerMoves.moveToNextPlayer(game, {
+    let updatedGame = await writePlayerMove(io, game, [card]);
+    updatedGame = await playerMoves.moveToNextPlayer(game, {
       skips: 1,
     });
     updatedGame = await playerMoves.transferDealtCard(
@@ -112,6 +148,10 @@ export default {
     io.in(updatedGame.id).emit(
       gameEvents.playerCurrent,
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
+    );
+    io.in(updatedGame.id).emit(
+      cardEvents.cardTop,
+      updatedGame.toJSON().topCard,
     );
 
     updatedGame = updatedGame.toJSON();
@@ -137,8 +177,10 @@ export default {
 
   async onDirectionChanger({ io }: SocketArg, game: IGame, card: ICard) {
     await playerMoves.setCurrentValue(game, card.value);
+    await changeSuiteAtopJoker(io, game, card);
     await playerMoves.setTopCard(game, card);
-    let updatedGame = await playerMoves.changeDirection(game);
+    let updatedGame = await writePlayerMove(io, game, [card]);
+    updatedGame = await playerMoves.changeDirection(game);
     updatedGame = await playerMoves.moveToNextPlayer(updatedGame, {});
     await playerMoves.clearDealtCards(updatedGame);
 
@@ -147,12 +189,14 @@ export default {
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
     );
     io.in(game.id).emit(cardEvents.cardDirection, updatedGame.direction);
+    io.in(game.id).emit(cardEvents.cardTop, updatedGame.toJSON().topCard);
   },
 
   async onJoker({ io }: SocketArg, game: IGame, card: ICard) {
     await playerMoves.setCurrentSuite(game, pokerSuiteValues.joker);
     await playerMoves.setTopCard(game, card);
-    let updatedGame = await playerMoves.moveToNextPlayer(game, {});
+    let updatedGame = await writePlayerMove(io, game, [card]);
+    updatedGame = await playerMoves.moveToNextPlayer(game, {});
     updatedGame = await playerMoves.dealCard(
       game,
       PokerCounts.joker,
@@ -166,6 +210,7 @@ export default {
       gameEvents.playerCurrent,
       getPlayer(updatedGame.players, updatedGame.currentPlayerSocketId),
     );
+    io.in(game.id).emit(cardEvents.cardTop, updatedGame.toJSON().topCard);
     io.to(updatedGame.currentPlayerSocketId).emit(
       gameEvents.playerCards,
       player.cards,

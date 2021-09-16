@@ -8,6 +8,7 @@ import { deckStats, validateCardDraw } from '../card/card.service';
 import { cardValMessages } from '../card/cardUtils';
 import playerMoveHandlers from './playerMoveHandlers';
 import * as finalizeEvent from './finalizeEvent';
+import logger from '../../utils/logger';
 
 export type SocketArg = {
   socket: Socket;
@@ -44,46 +45,50 @@ export const startGameRoom = async (
   const curGame = await gameService.findGame(gameId);
 
   if (curGame) {
-    // if (curGame.gameStatus !== 'PENDING') {
-    //   socket.emit(IOEvents.error, { message: 'Game already started' });
-    // } else if (curGame.currentPlayerSocketId !== _socketId) {
-    //   socket.emit(IOEvents.error, {
-    //     message: 'Unauthorized to start game',
-    //   });
-    // } else if (curGame.players.length < 2) {
-    //   socket.emit(IOEvents.error, {
-    //     message: 'Must have more than 1 player to start game',
-    //   });
-    // } else {
-    const gameStart: IGame = (await gameService.startGame(curGame.id)).toJSON();
-    io.in(curGame.id).emit(gameEvents.startedGame, {
-      currentPlayerSocketId: gameStart.currentPlayerSocketId,
-      players: gameStart.players,
-      topCard: gameStart.topCard,
-      direction: gameStart.direction,
-    });
-    gameStart.players.forEach(player => {
-      io.to(player.socketId).emit(gameEvents.playerCards, player.cards);
-    });
-    io.in(curGame.id).emit(cardEvents.cardTop, gameStart.topCard);
-    io.in(curGame.id).emit(cardEvents.cardCurrentSuite, gameStart.currentSuite);
-    io.in(curGame.id).emit(cardEvents.cardDirection, gameStart.direction);
-    io.in(curGame.id).emit(gameEvents.playerCount, gameStart.players.length);
-    io.in(curGame.id).emit(
-      gameEvents.playerCurrent,
-      gameService.getPlayer(
-        gameStart.players,
-        gameStart.currentPlayerSocketId!,
-      ),
-    );
+    if (curGame.gameStatus !== 'PENDING') {
+      socket.emit(IOEvents.error, { message: 'Game already started' });
+    } else if (curGame.currentPlayerSocketId !== _socketId) {
+      socket.emit(IOEvents.error, {
+        message: 'Unauthorized to start game',
+      });
+    } else if (curGame.players.length < 2) {
+      socket.emit(IOEvents.error, {
+        message: 'Must have more than 1 player to start game',
+      });
+    } else {
+      const gameStart: IGame = (
+        await gameService.startGame(curGame.id)
+      ).toJSON();
+      io.in(curGame.id).emit(gameEvents.startedGame, {
+        currentPlayerSocketId: gameStart.currentPlayerSocketId,
+        players: gameStart.players,
+        topCard: gameStart.topCard,
+        direction: gameStart.direction,
+      });
+      gameStart.players.forEach(player => {
+        io.to(player.socketId).emit(gameEvents.playerCards, player.cards);
+      });
+      io.in(curGame.id).emit(cardEvents.cardTop, gameStart.topCard);
+      io.in(curGame.id).emit(
+        cardEvents.cardCurrentSuite,
+        gameStart.currentSuite,
+      );
+      io.in(curGame.id).emit(cardEvents.cardDirection, gameStart.direction);
+      io.in(curGame.id).emit(gameEvents.playerCount, gameStart.players.length);
+      io.in(curGame.id).emit(
+        gameEvents.playerCurrent,
+        gameService.getPlayer(
+          gameStart.players,
+          gameStart.currentPlayerSocketId!,
+        ),
+      );
 
-    // TODO: Remove
-    // setTimeout(() => {
-    //   // io.in(curGame.id).emit(gameEvents.finishedGame, 'mal');
-    //   io.in(curGame.id).emit(cardEvents.cardLeft, 'titan');
-    // }, 2000);
-
-    // }
+      // TODO: Remove
+      // setTimeout(() => {
+      //   // io.in(curGame.id).emit(gameEvents.finishedGame, 'mal');
+      //   io.in(curGame.id).emit(cardEvents.cardLeft, 'titan');
+      // }, 2000);
+    }
   } else {
     socket.emit(IOEvents.error, { message: 'Game not found' });
   }
@@ -203,22 +208,26 @@ export const makeGameMove = async (
 
     if (validated) {
       if (deckStats.isEmpty(movedDeck)) {
-        // logger.info('isEmpty');
+        logger.info('isEmpty');
         await playerMoveHandlers.onEmpty({ io, socket }, game);
       } else if (deckStats.isJoker(movedDeck)) {
-        // logger.info('isJoker');
+        logger.info('isJoker');
         await playerMoveHandlers.onJoker({ io, socket }, game, movedDeck[0]);
       } else if (deckStats.isDirectionChanger(movedDeck)) {
+        logger.info('isDirection');
         await playerMoveHandlers.onDirectionChanger(
           { io, socket },
           game,
           movedDeck[0],
         );
       } else if (deckStats.isSkipper(movedDeck)) {
+        logger.info('isSKipper');
         await playerMoveHandlers.onSkipper({ io, socket }, game, movedDeck[0]);
       } else if (deckStats.isAce(movedDeck)) {
+        logger.info('isAce');
         await playerMoveHandlers.onAce({ io, socket }, game, movedDeck[0]);
       } else if (deckStats.isSuiteChanger(movedDeck)) {
+        logger.info('isSuite');
         await playerMoveHandlers.onSuiteChanger(
           { io, socket },
           game,
@@ -226,20 +235,22 @@ export const makeGameMove = async (
           asSuite,
         );
       } else {
+        logger.info('isRest');
         await playerMoveHandlers.onRestMove({ io, socket }, game, movedDeck);
       }
-      await finalizeEvent.finalizeMove(
-        { io, cardPlayerSocketId },
-        game,
-        movedDeck,
-      );
+
+      await finalizeEvent.finalizeMove({ io, cardPlayerSocketId }, game);
     }
   }
 };
 
-export const drawCardRoom = async (socketArg: SocketArg, gameId: string) => {
+export const drawCardRoom = async (
+  socketArg: SocketArg,
+  gameId: string,
+  socketId: string,
+) => {
   const curGame = await gameService.findGame(gameId);
-  if (curGame) {
+  if (curGame && curGame.currentPlayerSocketId === socketId) {
     await playerMoveHandlers.onDraw(socketArg, curGame);
   }
 };
